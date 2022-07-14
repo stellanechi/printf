@@ -1,132 +1,69 @@
 #include "main.h"
 
+void print_buffer(char buffer[], int *buff_ind);
 /**
- * str_rev - prints a string in reversal, followed by a new line,
- * @str: pointer to the string to print
- * Return: void
-*/
-
-char *str_rev(char *str)
-{
-	int i;
-	int len = 0;
-	char c;
-	
-	if (!str)
-		return (NULL);
-
-	while (str[len] != '\0')
-	{
-		len++;
-	}
-	for (i = 0; i < (len / 2); i++)
-	{
-		c = str[i];
-		str[i] = str[len - i - 1];
-		str[len - i - 1] = c;
-	}
-	return str;
-}
-
-/**
- * _itoa - Convert a string to integer.
- * @i: integer value 
- * @strout: char array string
- * @base: base value
- * Return: first integer found in string
- */
-
-char *_itoa(int i, char *strout, int base)
-{
-	char *str = strout;
-	int digit, sign = 0;
-	if (i < 0)
-	{
-		sign = 1;
-		i *= -1;
-	}
-	while (i)
-	{
-		digit = i % base;
-		*str = (digit > 9) ? ('A' + digit - 10) : '0' + digit;
-		i = i / base;
-		str++;
-	}
-	if (sign)
-	{
-		*str++ = '-';
-	}
-	*str = '\0';
-	str_rev(strout);
-	return strout;
-}
-
-/**
- * _printf - mimic printf from stdio
- * Description: produces output according to a format
- * write output to stdout, the standard output stream
- * @format: character string composed of zero or more directives
- *
- * Return: the number of characters printed
- * (excluding the null byte used to end output to strings)
- * return -1 for incomplete identifier error
+ * _printf - Printf function
+ * @format: format.
+ * Return: Printed chars.
  */
 
 int _printf(const char *format, ...)
 {
-	va_list vl;
-	int i = 0, j = 0;
-	char buff[100] = {0}, tmp[20];
-	char *str_arg;
+	int i, printed = 0, printed_chars = 0;
+	int flags, width, precision, size, buff_ind = 0;
+	va_list list;
+	char buffer[BUFF_SIZE];
 
-	va_start(vl, format);
-	while (format && format[i])
+	if (format == NULL)
+		return (-1);
+
+	va_start(list, format);
+	for (i = 0; format && format[i] != '\0'; i++)
 	{
-		if (format[i] == '%')
+		if (format[i] != '%')
 		{
-			i++;
-			switch (format[i])
-			{
-				/* Convert char */
-				case 'c':
-					buff[j] = (char)va_arg(vl, int);
-					j++;
-					break;
+			buffer[buff_ind++] = format[i];
+			if (buff_ind == BUFF_SIZE)
+				print_buffer(buffer, &buff_ind);
 
-					/* Convert decimal */
-				case 'd':
-					_itoa(va_arg(vl, int), tmp, 10);
-					strcpy(&buff[j], tmp);
-					j += strlen(tmp);
-					break;
-					/* Convert hex */
-				case 'x':
-					_itoa(va_arg(vl, int), tmp, 16);
-					strcpy(&buff[j], tmp);
-					j += strlen(tmp);
-					break;
-					/* Convert octal */
-				case 'o':
-					_itoa(va_arg(vl, int), tmp, 8);
-					strcpy(&buff[j], tmp);
-					j += strlen(tmp);
-					break;
-					/* copy string */
-				case 's':
-					str_arg = va_arg(vl, char *);
-					strcpy(&buff[j], str_arg);
-					j += strlen(str_arg);
-					break;
-			}
+			/* write(1, &format[i], 1);*/
+			printed_chars++;
 		}
+
 		else
 		{
-			buff[j] = format[i];
-			j++;
+			print_buffer(buffer, &buff_ind);
+			flags = get_flags(format, &i);
+			width = get_width(format, &i, list);
+			precision = get_precision(format, &i, list);
+			size = get_size(format, &i);
+			++i;
+
+			printed = handle_print(format, &i, list, buffer,
+					flags, width, precision, size);
+
+			if (printed == -1)
+				return (-1);
+
+			printed_chars += printed;
 		}
-		i++;
 	}
-	fwrite(buff, j, 1, stdout);
-	va_end(vl);
-	return j;
+
+	print_buffer(buffer, &buff_ind);
+	va_end(list);
+	return (printed_chars);
+}
+
+/**
+ * print_buffer - Prints the contents of the buffer if it exist
+ * @buffer: Array of chars
+ * @buff_ind: Index at which to add next char, represents the length.
+ */
+
+void print_buffer(char buffer[], int *buff_ind)
+{
+	if (*buff_ind > 0)
+		write(1, &buffer[0], *buff_ind);
+
+	*buff_ind = 0;
 }
